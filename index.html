@@ -88,11 +88,11 @@
 </style>
 </head>
 <nav>
-    <div class="nav-logo" style="padding: 10px 20px; font-weight:bold; font-size:1.2em;">StockGrowth Pro</div>
+    <div class="nav-logo" style="padding: 10px 20px; font-weight:bold; font-size:1.2em;">Math</div>
 </nav>
 <body>
   <div class="wrap" role="main">
-    <h1>แบบจำลองทางคณิตศาสตร์สำหรับการวางแผนการลงทุนในชีวิตประจำวัน  <small style="font-size:0.5em;color:#64748b">by PlutoNo1</small></h1>
+    <h1>แบบจำลองทางคณิตศาสตร์สำหรับการวางแผนการลงทุนในชีวิตประจำวัน  <small style="font-size:0.5em;color:#64748b">สำหรับโครงงานคณิตศาสตร์</small></h1>
     <div class="card">
       <div class="grid">
         
@@ -105,18 +105,18 @@
           <label for="mode"> เลือกโหมดการคำนวณ</label>
           <select id="mode" onchange="updateInputs()">
             <optgroup label="เงินก้อนเดียว (Lump Sum)">
-                <option value="futureP">หาเงินอนาคต (S) จากเงินต้น (P)</option>
-                <option value="presentP">หาเงินต้น (P) จากเงินเป้าหมาย (S)</option>
-                <option value="findN_P">หาระยะเวลา (n) ของเงินก้อน</option>
-                <option value="findR_P">หาดอกเบี้ย (r) ของเงินก้อน</option>
+                <option value="futureP">หามูลค่าเงินในอนาคต</option>
+                <option value="presentP">หาเงินต้น</option>
+                <option value="findN_P">หาจำนวนปี</option>
+                <option value="findR_P">หาอัตราดอกเบี้ย</option>
             </optgroup>
             <optgroup label="เงินฝากรายงวด (Annuity)">
-                <option value="futureR_end">หาเงินรวม (ฝากสม่ำเสมอ-สิ้นงวด)</option>
-                <option value="futureR_start">หาเงินรวม (ฝากสม่ำเสมอ-ต้นงวด)</option>
-                <option value="findR_end">หาเงินที่ต้องฝากต่องวด (R) - สิ้นงวด</option>
-                <option value="findR_start">หาเงินที่ต้องฝากต่องวด (R) - ต้นงวด</option>
-                <option value="findN_R_end">หาจำนวนงวด (n) - สิ้นงวด</option>
-                <option value="findN_R_start">หาจำนวนงวด (n) - ต้นงวด</option>
+                <option value="futureR_end">หาเงินรวม สิ้นงวด</option>
+                <option value="futureR_start">หาเงินรวม ต้นงวด</option>
+                <option value="findR_end">หาเงินที่ต้องฝากต่องวด สิ้นงวด</option>
+                <option value="findR_start">หาเงินที่ต้องฝากต่องวด ต้นงวด</option>
+                <option value="findN_R_end">หาจำนวนงวด สิ้นงวด</option>
+                <option value="findN_R_start">หาจำนวนงวด ต้นงวด</option>
             </optgroup>
           </select>
         </div>
