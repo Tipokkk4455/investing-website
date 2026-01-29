@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="utf-8" />
-<title>เว็บคำนวณการลงทุน (Full Option + Find N Gradient)</title>
+<title>เเบบจำลองคำนวนการลงทุนโดยใช้คณิตศาสตร์มาประยุกต์</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
@@ -11,7 +11,6 @@
   .wrap{max-width:900px;width:100%}
   h1{color:#1e293b;margin:0 0 20px;text-align:center;font-weight:600;}
   .card{background:var(--card);padding:24px;border-radius:20px;box-shadow:0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);}
-  .nav-link { text-decoration: none; color: #64748b; font-size: 14px; transition: 0.2s; }
   
   .grid{display:grid;grid-template-columns:repeat(2, 1fr);gap:16px;}
   .full{grid-column:1/ -1;}
@@ -76,9 +75,10 @@
   table{width:100%;border-collapse:collapse;font-size:13px;}
   th,td{padding:10px;border-bottom:1px solid #f1f5f9;text-align:right;}
   th{background:#f8fafc;text-align:center;font-weight:600;color:#64748b;}
-  .warn{color:#b45309;background:#fffbeb;padding:10px;border-radius:6px;margin-bottom:8px;}
-  canvas{width:100%;height:280px;border-radius:12px;margin-top:10px;background:#fff;border:1px solid var(--border);}
-
+  
+  /* Canvas ปรับความสูง */
+  canvas{width:100% !important; height:350px !important; border-radius:12px; margin-top:10px; background:#fff; border:1px solid var(--border);}
+  
   @keyframes fadeIn { from{opacity:0;transform:translateY(5px);} to{opacity:1;transform:translateY(0);} }
   @media (max-width:760px){
     .grid{grid-template-columns:1fr;}
@@ -88,11 +88,11 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <nav>
-    <div class="nav-logo" style="padding: 10px 20px; font-weight:bold; font-size:1.2em;">Math Calculation</div>
+    <div class="nav-logo" style="padding: 10px 20px; font-weight:bold; font-size:1.2em;"></div>
 </nav>
 <body>
   <div class="wrap" role="main">
-    <h1>แบบจำลองคณิตศาสตร์สำหรับการวางแผนการเงิน</h1>
+    <h1>เเบบจำลองการออมสำหรับการฝากเงิน</h1>
     <div class="card">
       <div class="grid">
         
@@ -105,12 +105,12 @@
           <label for="mode"> เลือกโหมดการคำนวณ</label>
           <select id="mode" onchange="updateInputs()">
             <optgroup label="เงินฝากก้อนเดียว">
-                <option value="futureP">หามูลค่าเงินในอนาคต </option>
-                <option value="presentP">หาเงินต้น </option>
-                <option value="findN_P">หาจำนวนปี </option>
-                <option value="findR_P">หาอัตราดอกเบี้ย </option>
+                <option value="futureP">หามูลค่าเงินในอนาคต (S)</option>
+                <option value="presentP">หาเงินต้นที่ต้องมี (P)</option>
+                <option value="findN_P">หาจำนวนปี (n)</option>
+                <option value="findR_P">หาอัตราดอกเบี้ย (r)</option>
             </optgroup>
-            <optgroup label="เงินฝากรายงวดเท่ากัน (Annuity)">
+            <optgroup label="เงินฝากรายงวดเท่ากัน">
                 <option value="futureR_end">หาเงินรวม (ฝากสิ้นงวด)</option>
                 <option value="futureR_start">หาเงินรวม (ฝากต้นงวด)</option>
                 <option value="findR_end">หาเงินที่ต้องฝากต่องวด (สิ้นงวด)</option>
@@ -155,7 +155,7 @@
         <div id="boxD" class="full" style="display:none;">
             <label for="D">จำนวนเงินที่เพิ่มขึ้นต่องวด (d)</label>
             <input id="D" type="number" step="0.01" placeholder="ระบุจำนวนเงินที่เพิ่มขึ้นในแต่ละงวด">
-            <div class="hint">* เริ่มงวดที่ 2 จะฝากเพิ่มจากงวดแรก d บาท</div>
+            <div class="hint">การฝากเงินที่เพิ่มมากขึ้น d บาท</div>
         </div>
 
         <div id="boxQ" class="full" style="display:none;">
@@ -197,7 +197,7 @@
               <div class="tools">
                 <button class="secondary" onclick="showSchedule()">ดูตารางการเติบโต</button>
                 <button class="secondary" onclick="downloadScheduleCSV()">⬇CSV</button>
-                <button class="secondary" onclick="toggleChart()">กราฟ</button>
+                <button class="secondary" onclick="toggleChart()">📈 กราฟ (Smooth)</button>
               </div>
             </div>
 
@@ -235,6 +235,7 @@ function escapeHtml(unsafe) {
 
 let entries = JSON.parse(localStorage.getItem('inv_entries_v2') || '[]');
 let editingIndex = -1;
+let myChart = null; // ตัวแปรสำหรับ Chart Instance
 
 const config = {
   futureP:['boxP','boxR','boxN','boxK'],
@@ -247,12 +248,8 @@ const config = {
   findR_start:['boxR','boxN','boxS','boxK'],
   findN_R_end:['boxP','boxR','boxS','boxK'],
   findN_R_start:['boxP','boxR','boxS','boxK'],
-  
-  // โหมดเดิม
   future_gradient:['boxP','boxD','boxR','boxN','boxK'],
   future_geometric:['boxP','boxQ','boxR','boxN','boxK'],
-  
-  // เพิ่มโหมดใหม่
   findN_gradient:['boxP','boxD','boxR','boxS','boxK'],
   findN_geometric:['boxP','boxQ','boxR','boxS','boxK']
 };
@@ -323,7 +320,7 @@ function importJSON(input){
     input.value = ''; 
 }
 
-/* ============== calc logic ============== */
+/* ============== CORE CALC LOGIC (Full Version) ============== */
 function onCalculate(){
   const resObj = calculate(true);
   if (!resObj) return;
@@ -369,12 +366,12 @@ function onCalculate(){
 
 function calculate(returnResult=false){
   const mode = el('mode').value;
-  const P = parseFloat(el('P').value); // a1 or R
+  const P = parseFloat(el('P').value); 
   let rawR = parseFloat(el('r').value);
   const n = parseFloat(el('n').value);
   const S = parseFloat(el('S').value);
   const D = parseFloat(el('D').value) || 0; 
-  const G = parseFloat(el('Q').value) || 0; // Growth Rate %
+  const G = parseFloat(el('Q').value) || 0; 
   const kInput = parseFloat(el('k').value);
   const k = (isNaN(kInput) || kInput <= 0) ? 12 : kInput;
   const periodType = el('period').value;
@@ -411,7 +408,7 @@ function calculate(returnResult=false){
   const sPer = per.toFixed(5); 
   const sN = periods.toFixed(0);
 
-  /* Logic Calculation */
+  /* Logic Calculation - Full Version Restored */
   if (mode === 'future_geometric') {
       const q = 1 + (G/100);
       const sQ = q.toFixed(4);
@@ -490,7 +487,8 @@ function calculate(returnResult=false){
 
   } else if (mode === 'futureR_end'){
     const Sres = (per === 0) ? P*periods : P * ((Math.pow(1 + per, periods) - 1) / per);
-    out = `<strong> เงินรวม (S): ${fmt(Sres)} บาท</strong>\n(ฝากเดือนละ ${sP} เป็นเวลา ${n} ปี)`;
+    const totalPrincipal = P * periods;
+    out = `<strong> เงินรวม (S): ${fmt(Sres)} บาท</strong>\n(ฝากเดือนละ ${sP} เป็นเวลา ${n} ปี)\nเงินต้นรวม: ${fmt(totalPrincipal)}\nดอกเบี้ยรวม: ${fmt(Sres - totalPrincipal)}`;
     numeric = Sres;
     formula = `S = R × [ ((1 + r)<sup>n</sup> - 1) / r ]`;
     subst = `S = ${sP} × [ ((1 + ${sPer})<sup>${sN}</sup> - 1) / ${sPer} ]`;
@@ -498,7 +496,8 @@ function calculate(returnResult=false){
   } else if (mode === 'futureR_start'){
     const factor = (per === 0) ? periods : ((Math.pow(1 + per, periods) - 1) / per) * (1+per);
     const Sres = P * factor;
-    out = `<strong> เงินรวม (S): ${fmt(Sres)} บาท</strong>\n(ฝากต้นงวด ${sP} เป็นเวลา ${n} ปี)`;
+    const totalPrincipal = P * periods;
+    out = `<strong> เงินรวม (S): ${fmt(Sres)} บาท</strong>\n(ฝากต้นงวด ${sP} เป็นเวลา ${n} ปี)\nเงินต้นรวม: ${fmt(totalPrincipal)}\nดอกเบี้ยรวม: ${fmt(Sres - totalPrincipal)}`;
     numeric = Sres;
     formula = `S = R × [ ((1 + r)<sup>n</sup> - 1) / r ] × (1 + r)`;
     subst = `S = ${sP} × [ ((1 + ${sPer})<sup>${sN}</sup> - 1) / ${sPer} ] × (1 + ${sPer})`;
@@ -620,23 +619,19 @@ function calculate(returnResult=false){
   return null;
 }
 
-// ฟังก์ชัน Solver หาค่า N
+// ฟังก์ชัน Solver หาค่า N (จำเป็นสำหรับโหมด findN)
 function solveN_Numerical(targetS, inputs, type) {
     let low = 0.01;
     let high = 500.0; // ขอบเขตสูงสุด 500 ปี
     let mid = 0;
     let computedS = 0;
-    
-    // P=งวดแรก, r=ดอกเบี้ยต่องวด, d=เงินเพิ่ม, g=%เพิ่ม, k=ความถี่
     const { P, r, d, g, k } = inputs; 
 
-    // Binary Search 100 รอบ
     for (let i = 0; i < 100; i++) {
         mid = (low + high) / 2;
         const periods = mid * k;
         
         if (type === 'gradient') {
-            // Logic เดียวกับ future_gradient
             if (r === 0) {
                  computedS = (periods/2) * (2*P + (periods-1)*d);
             } else {
@@ -648,7 +643,6 @@ function solveN_Numerical(targetS, inputs, type) {
                  computedS = term1 + term2;
             }
         } else {
-            // Logic เดียวกับ future_geometric
             const q = 1 + (g/100);
             if (Math.abs((1+r) - q) < 1e-9) {
                 computedS = periods * P * Math.pow(1+r, periods-1);
@@ -658,7 +652,6 @@ function solveN_Numerical(targetS, inputs, type) {
                 computedS = numerator / denominator;
             }
         }
-
         if (Math.abs(computedS - targetS) < 1.0) break;
         if (computedS < targetS) low = mid;
         else high = mid;
@@ -701,7 +694,6 @@ function loadToForm(index){
   updateInputs();
   if(it.inputs.k) el('k').value = it.inputs.k;
   el('period').value = it.inputs.periodType || 'year';
-  
   el('P').value = it.inputs.P || '';
   el('r').value = it.inputs.r || '';
   el('n').value = it.inputs.n || '';
@@ -717,218 +709,218 @@ function loadToForm(index){
 
 function renderSummary(){
   const s = el('summary'); s.innerHTML = '';
-  if (entries.length < 2) return;
-  const validFV = entries.filter(e => e.mode.includes('future') || e.mode.includes('present') || e.mode.includes('gradient') || e.mode.includes('geometric'));
-  if(validFV.length > 0){
-      const maxVal = validFV.reduce((prev, current) => {
-        const a = isFinite(prev.numeric) ? prev.numeric : -Infinity;
-        const b = isFinite(current.numeric) ? current.numeric : -Infinity;
-        return (a > b) ? prev : current;
-      });
-      if (isFinite(maxVal.numeric)) {
-        s.innerHTML = `<div class="sumitem" style="border-left:4px solid var(--success);padding:10px;background:#fff;border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,0.05)">
-          <div style="font-weight:bold;color:var(--success)">มูลค่าสูงสุด</div>
-          <div style="font-size:0.9em;color:#64748b">${escapeHtml(maxVal.name)}</div>
-          <div style="font-size:1.3em;font-weight:600;margin-top:4px">${fmt(maxVal.numeric)}</div>
-        </div>`;
-      }
-  }
+  if (entries.length < 1) return;
+  const last = entries[entries.length-1];
+  // แสดง Summary พร้อมกำไรสุทธิ (ถ้ามี)
+  s.innerHTML = `<div style="padding:15px;background:#f1f5f9;border-radius:8px;font-size:14px;border:1px solid #cbd5e1;">
+      <strong>รายการล่าสุด:</strong> ${escapeHtml(last.name)} <br>
+      <span style="font-size:1.2em;color:#2563eb;font-weight:bold">${fmt(last.numeric)}</span>
+      ${ last.text.includes('กำไรสุทธิ') ? '<br><span style="color:#10b981;font-size:0.9em">✨ มีการคำนวณกำไรสุทธิ/ดอกเบี้ยรวม ดูรายละเอียดด้านล่าง</span>' : '' }
+  </div>`;
 }
 
-/* ============== Schedule & Chart ============== */
-function buildScheduleFromForm(){
+function copyLatest(){
+  if(entries.length===0) return alert('ไม่มีข้อมูล');
+  const txt = entries[entries.length-1].text.replace(/<[^>]*>?/gm, '');
+  navigator.clipboard.writeText(txt).then(()=>alert('คัดลอกแล้ว'));
+}
+
+/* =========================================
+   GRAPH LOGIC (Smooth + Downsampling)
+   ========================================= */
+
+function generateScheduleData() {
   const mode = el('mode').value;
-  const P = parseFloat(el('P').value); // a1
-  const rawR = parseFloat(el('r').value);
-  const n = parseFloat(el('n').value);
-  const D = parseFloat(el('D').value) || 0; // d
-  const G = parseFloat(el('Q').value) || 0; // Growth Rate
-  const kInput = parseFloat(el('k').value);
-  const k = (isNaN(kInput) || kInput <= 0) ? 12 : kInput;
-  const periodType = el('period').value;
-
-  const annualRVal = parseEffectiveRate(rawR, periodType);
-  const annualR = (annualRVal > 0) ? annualRVal / 100 : 0;
+  const P = parseFloat(el('P').value) || 0; 
+  const rawR = parseFloat(el('r').value) || 0;
+  let n = parseFloat(el('n').value) || 0;
+  const D = parseFloat(el('D').value) || 0; 
+  const G = parseFloat(el('Q').value) || 0; 
+  const S = parseFloat(el('S').value) || 0;
   
-  const per = (annualR && k>0) ? (annualR / k) : 0;
+  let kInput = parseFloat(el('k').value);
+  let k = (isNaN(kInput) || kInput <= 0) ? 12 : kInput; 
+  let periodType = el('period').value;
   
-  // Logic หาจำนวนงวด (ถ้าเป็นโหมด findN ให้ใช้ค่าที่คำนวณได้)
-  let periods = Math.round(k * (isFinite(n) ? n : 0));
-  if(mode.startsWith('findN_')){
-      const c = calculate(true);
-      if(c && isFinite(c.numeric)) {
-        // numeric คือจำนวนปี
-        periods = Math.ceil(c.numeric * k);
+  let r_annual = (periodType === 'month') ? rawR * 12 : rawR; 
+  let r_per_period = (r_annual / 100) / k;
+  
+  // Simulation for findN
+  if(mode.startsWith('findN') && S > 0 && P > 0) {
+      if(Math.log(1+r_per_period) !== 0) {
+          let estimatedN = Math.log(S/P) / (k * Math.log(1+r_per_period));
+          if(estimatedN > 0 && estimatedN < 1000) n = estimatedN; 
       }
+      if(n === 0) n = 10; 
   }
 
-  const MAX_ROWS = 600;
-  if (periods > MAX_ROWS) {
-    if (!confirm(`จำนวนงวด = ${periods} (มากกว่า ${MAX_ROWS})\nการแสดงตารางจะถูกจำกัดที่ ${MAX_ROWS} งวด\nต้องการดำเนินการต่อหรือไม่?`)) return null;
-  }
-  const capPeriods = Math.min(periods, MAX_ROWS);
-  if (capPeriods <= 0) return null;
-
-  let rows = [];
-  let balance = 0;
+  let totalPeriods = Math.ceil(n * k);
+  if(totalPeriods > 20000) totalPeriods = 20000; // Limit for safety
   
-  // Logic สำหรับตาราง
-  if (['futureP','presentP','findN_P','findR_P'].includes(mode)) {
-    balance = isFinite(P) ? P : 0;
-    rows.push({period:0, balanceBefore:balance, interest:0, payment:0, balanceAfter:balance});
-    for (let i=1;i<=capPeriods;i++){
-      const interest = balance * per;
-      const after = balance + interest;
-      rows.push({period:i, balanceBefore:balance, interest, payment:0, balanceAfter:after});
-      balance = after;
-    }
-  } 
-  else {
-    let R_val = isFinite(P) ? P : 0;
-    if (mode.includes('findR')) {
-        const c = calculate(true);
-        if(c && isFinite(c.numeric)) R_val = c.numeric;
-    }
-    
-    // ตั้งต้นงวด 0
-    balance = 0; 
-    rows.push({period:0, balanceBefore:0, interest:0, payment:0, balanceAfter:0});
+  let balance = 0;
+  let accumulatedPrinciple = 0;
+  let labels = [];
+  let dataBalance = [];
+  let dataPrincipal = [];
+  let tableRows = [];
 
-    // Geometric q setup
-    let q = 1 + (G/100);
-
-    for (let i=1;i<=capPeriods;i++){
-       let payment = R_val;
-       
-       // กรณี Gradient
-       if (mode === 'future_gradient' || mode === 'findN_gradient') {
-           payment = P + ((i-1) * D);
-       } else if (mode === 'future_geometric' || mode === 'findN_geometric') {
-           payment = P * Math.pow(q, i-1);
-       }
-
-       // ตรวจสอบโหมด ฝากต้นงวด/สิ้นงวด (Gradient ถือเป็นต้นงวดตามสูตรที่ใช้ หรือ สิ้นงวด? ปกติสูตรที่ใช้ข้างบนเป็น Ordinary Annuity + Gradient ที่เริ่มจ่ายงวด 1)
-       // *สูตร Gradient ใน calculate ข้างบนใช้ logic: จ่ายสิ้นงวดที่ 1 เป็น a1, สิ้นงวด 2 เป็น a1+d*
-       // ดังนั้นคิดดอกเบี้ยจาก balance ก่อน แล้วบวก payment
-       
-       // *แต่* ถ้าเป็น futureR_start (Annuity Due) ดอกเบี้ยจะคิดหลังฝาก
-       const isStart = mode.includes('_start');
-
-       let interest = 0;
-       if (isStart) {
-          // ฝากก่อน -> คิดดอกเบี้ย
-          const tempBal = balance + payment;
-          interest = tempBal * per;
-          balance = tempBal + interest;
-       } else {
-          // คิดดอกเบี้ยจากยอดเดิม -> ฝากเงินเพิ่ม
-          interest = balance * per;
-          balance = balance + interest + payment;
-       }
-       
-       rows.push({period:i, balanceBefore:0, interest, payment, balanceAfter:balance});
-    }
+  // Initial State
+  if(['futureP', 'presentP', 'findN_P', 'findR_P'].includes(mode)) {
+      balance = P; accumulatedPrinciple = P;
   }
-  return rows;
+
+  labels.push(0);
+  dataBalance.push(balance);
+  dataPrincipal.push(accumulatedPrinciple);
+
+  for(let i=1; i<=totalPeriods; i++){
+      let interest = balance * r_per_period;
+      let depositThisPeriod = 0;
+      
+      if(['futureP','presentP','findN_P','findR_P'].includes(mode)){
+          depositThisPeriod = 0;
+      } else if(mode.includes('gradient')) {
+          depositThisPeriod = P + ( (i-1) * D );
+      } else if(mode.includes('geometric')) {
+          let g_rate = G/100;
+          depositThisPeriod = P * Math.pow(1+g_rate, i-1);
+      } else {
+          depositThisPeriod = P;
+      }
+
+      if(mode.includes('start')){
+          let preBal = balance + depositThisPeriod;
+          balance = preBal * (1 + r_per_period);
+          interest = balance - preBal; 
+      } else {
+          balance = balance + interest + depositThisPeriod;
+      }
+
+      accumulatedPrinciple += depositThisPeriod;
+
+      labels.push(i);
+      dataBalance.push(balance);
+      dataPrincipal.push(accumulatedPrinciple);
+      
+      tableRows.push({ t: i, p: depositThisPeriod, int: interest, bal: balance });
+  }
+  
+  return { labels, dataBalance, dataPrincipal, tableRows, k, totalPeriods };
 }
 
 function showSchedule(){
-  const rows = buildScheduleFromForm();
-  if(!rows) return;
-  
-  let h = '<table><thead><tr><th>งวดที่</th><th>เงินต้น/ยอดเก่า</th><th>เงินฝากเพิ่ม</th><th>ดอกเบี้ย</th><th>ยอดรวม</th></tr></thead><tbody>';
-  rows.forEach(r => {
-      h += `<tr>
-        <td>${r.period}</td>
-        <td>${r.period===0 ? '-' : fmt(r.balanceAfter - r.payment - r.interest)}</td>
-        <td>${fmt(r.payment)}</td>
-        <td>${fmt(r.interest)}</td>
-        <td style="font-weight:bold">${fmt(r.balanceAfter)}</td>
-      </tr>`;
-  });
-  h += '</tbody></table>';
-  el('scheduleWrap').innerHTML = h;
-  el('scheduleArea').style.display = 'block';
-  el('scheduleArea').scrollIntoView({behavior:'smooth'});
+    const data = generateScheduleData();
+    const area = el('scheduleArea');
+    const wrap = el('scheduleWrap');
+    area.style.display = 'block';
+    el('chartArea').style.display = 'none';
+    
+    let html = `<table><thead><tr><th>งวดที่</th><th>เงินฝาก/งวด</th><th>ดอกเบี้ย</th><th>เงินรวม</th></tr></thead><tbody>`;
+    const maxShow = 100;
+    data.tableRows.forEach((row, idx) => {
+        if(idx < maxShow || idx === data.tableRows.length - 1) {
+             if(idx === maxShow && data.tableRows.length > maxShow+1) 
+                 html += `<tr><td colspan="4" style="text-align:center;color:#94a3b8">... (ซ่อน ${data.tableRows.length - maxShow - 1} รายการ) ...</td></tr>`;
+             else 
+                 html += `<tr><td>${row.t}</td><td>${fmt(row.p)}</td><td style="color:#10b981">+${fmt(row.int)}</td><td style="font-weight:600">${fmt(row.bal)}</td></tr>`;
+        }
+    });
+    html += `</tbody></table>`;
+    wrap.innerHTML = html;
+    area.scrollIntoView({behavior:'smooth'});
 }
 
 function downloadScheduleCSV(){
-  const rows = buildScheduleFromForm();
-  if(!rows) return;
-  let csv = "\uFEFFPeriod,Payment,Interest,Balance\n";
-  rows.forEach(r => {
-      csv += `${r.period},${r.payment.toFixed(2)},${r.interest.toFixed(2)},${r.balanceAfter.toFixed(2)}\n`;
-  });
-  const blob = new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'schedule.csv';
-  document.body.appendChild(a); a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),1000);
+    const data = generateScheduleData();
+    let csvContent = "data:text/csv;charset=utf-8,Period,Deposit,Interest,Balance\n";
+    data.tableRows.forEach(row => { csvContent += `${row.t},${row.p.toFixed(2)},${row.int.toFixed(2)},${row.bal.toFixed(2)}\n`; });
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "schedule.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 }
 
-/* ============== Chart ============== */
-let chartInstance = null;
-function clearCanvas(){
-  if(chartInstance){ chartInstance.destroy(); chartInstance=null; }
-}
+function clearCanvas(){ if(myChart){ myChart.destroy(); myChart = null; } }
 
 function toggleChart(){
     const area = el('chartArea');
-    if (area.style.display !== 'none') {
-        area.style.display = 'none';
-        return;
-    }
-    const rows = buildScheduleFromForm();
-    if(!rows) return;
-    area.style.display = 'block';
-    
-    // Reduce data points for chart if too many
-    let dataPoints = rows;
-    if (rows.length > 100) {
-        const step = Math.ceil(rows.length / 100);
-        dataPoints = rows.filter((_,i) => i % step === 0 || i === rows.length-1);
-    }
-    
     const ctx = el('chartCanvas').getContext('2d');
-    clearCanvas();
     
-    chartInstance = new Chart(ctx, {
+    if(area.style.display === 'block') { area.style.display = 'none'; return; }
+    area.style.display = 'block';
+    el('scheduleArea').style.display = 'none';
+    
+    const rawData = generateScheduleData();
+    
+    // --- DOWNSAMPLING FOR SMOOTH CHART ---
+    const maxPoints = 250; 
+    const total = rawData.labels.length;
+    let step = Math.ceil(total / maxPoints);
+    if(step < 1) step = 1;
+
+    const smoothLabels = rawData.labels.filter((_, i) => i % step === 0 || i === total - 1);
+    const smoothBalance = rawData.dataBalance.filter((_, i) => i % step === 0 || i === total - 1);
+    const smoothPrincipal = rawData.dataPrincipal.filter((_, i) => i % step === 0 || i === total - 1);
+
+    clearCanvas();
+
+    myChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: dataPoints.map(r => r.period),
-            datasets: [{
-                label: 'เงินรวมสะสม (Balance)',
-                data: dataPoints.map(r => r.balanceAfter),
-                borderColor: '#3b82f6',
-                backgroundColor: 'rgba(59,130,246,0.1)',
-                fill: true,
-                tension: 0.3
-            }]
+            labels: smoothLabels,
+            datasets: [
+                {
+                    label: 'เงินรวมสะสม (Balance)',
+                    data: smoothBalance,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4, 
+                    pointRadius: 0,
+                    pointHoverRadius: 6
+                },
+                {
+                    label: 'เงินต้นสะสม',
+                    data: smoothPrincipal,
+                    borderColor: '#94a3b8',
+                    borderDash: [5, 5],
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }
+            ]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: false, 
+            interaction: { mode: 'index', intersect: false },
             plugins: {
-                legend: { display: true },
-                tooltip: { 
-                    callbacks: { label: (ctx)=> '฿ '+fmt(ctx.raw) } 
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: function(c) { return c.dataset.label + ': ' + new Intl.NumberFormat('th-TH').format(c.parsed.y); },
+                        title: function(c) { return 'งวดที่ ' + c[0].label; }
+                    }
                 }
             },
             scales: {
-                y: { beginAtZero: true, ticks:{ callback: v=>fmt(v) } }
+                x: { title: { display: true, text: 'งวดเวลา' }, grid: { display: false }, ticks: { maxTicksLimit: 10 } },
+                y: {
+                    beginAtZero: true,
+                    ticks: { callback: function(v) { if(v>=1e6)return(v/1e6).toFixed(1)+'M'; if(v>=1e3)return(v/1e3).toFixed(0)+'k'; return v; } }
+                }
             }
         }
     });
-    area.scrollIntoView({behavior:'smooth'});
-}
-
-// Copy to clipboard
-function copyLatest(){
-    const t = el('output').innerText;
-    if(!t) return;
-    navigator.clipboard.writeText(t).then(()=>alert('คัดลอกผลลัพธ์แล้ว'));
+    
+    setTimeout(() => area.scrollIntoView({behavior:'smooth', block:'start'}), 100);
 }
 </script>
 </body>
